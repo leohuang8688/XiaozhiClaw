@@ -1,6 +1,6 @@
 # xiaozhiclaw 🧤
 
-**XiaoZhi AI ESP32 + OpenClaw Bridge**
+** OpenClaw Channel for XiaoZhi AI Device (ESP32 hardware) **
 
 Connect your XiaoZhi AI Device to OpenClaw agents for real-time voice interaction. Give your AI assistant a physical body!
 
