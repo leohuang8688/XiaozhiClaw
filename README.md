@@ -2,7 +2,7 @@
 
 **XiaoZhi AI ESP32 + OpenClaw Bridge**
 
-Connect your XiaoZhi AI ESP32 hardware to OpenClaw agents for real-time voice interaction. Give your AI assistant a physical body!
+Connect your XiaoZhi AI Device to OpenClaw agents for real-time voice interaction. Give your AI assistant a physical body!
 
 ## Features
 
