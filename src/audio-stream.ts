@@ -1,6 +1,8 @@
 // Audio streaming utilities for XiaoZhi ESP32
 // Handles Opus encoding/decoding for real-time voice communication
 
+import { OpusEncoder, OpusDecoder } from "opusscript";
+
 export interface AudioConfig {
   sampleRate: number;
   frameDuration: number;
@@ -15,31 +17,67 @@ export const DEFAULT_AUDIO_CONFIG: AudioConfig = {
 
 export class AudioStream {
   private config: AudioConfig;
+  private encoder: OpusEncoder | null = null;
+  private decoder: OpusDecoder | null = null;
 
   constructor(config: AudioConfig = DEFAULT_AUDIO_CONFIG) {
     this.config = config;
   }
 
   /**
-   * Decode Opus audio frame to PCM
-   * Note: In production, use opusscript or similar library
+   * Initialize Opus encoder
    */
-  decodeOpus(opusFrame: Buffer): Int16Array {
-    // TODO: Implement actual Opus decoding
-    // For now, return empty PCM buffer
-    const samples = Math.floor(
+  initEncoder(): void {
+    const frameSize = Math.floor(
       (this.config.sampleRate * this.config.frameDuration) / 1000
     );
-    return new Int16Array(samples);
+    this.encoder = new OpusEncoder(this.config.sampleRate, this.config.channels, OpusEncoder.Application.AUDIO);
+    this.encoder.encoderCTL(4096, frameSize); // OPUS_SET_BITRATE
+  }
+
+  /**
+   * Initialize Opus decoder
+   */
+  initDecoder(): void {
+    this.decoder = new OpusDecoder(this.config.sampleRate, this.config.channels);
+  }
+
+  /**
+   * Decode Opus audio frame to PCM
+   */
+  decodeOpus(opusFrame: Buffer): Int16Array {
+    if (!this.decoder) {
+      this.initDecoder();
+    }
+    
+    try {
+      const frameSize = Math.floor(
+        (this.config.sampleRate * this.config.frameDuration) / 1000
+      );
+      return this.decoder!.decode(opusFrame, frameSize);
+    } catch (error) {
+      console.error("Opus decode error:", error);
+      const samples = Math.floor(
+        (this.config.sampleRate * this.config.frameDuration) / 1000
+      );
+      return new Int16Array(samples);
+    }
   }
 
   /**
    * Encode PCM audio to Opus frame
    */
   encodeOpus(pcmData: Int16Array): Buffer {
-    // TODO: Implement actual Opus encoding
-    // For now, return empty buffer
-    return Buffer.alloc(0);
+    if (!this.encoder) {
+      this.initEncoder();
+    }
+    
+    try {
+      return this.encoder!.encode(pcmData, pcmData.length);
+    } catch (error) {
+      console.error("Opus encode error:", error);
+      return Buffer.alloc(0);
+    }
   }
 
   /**
@@ -111,6 +149,20 @@ export class AudioStream {
     }
 
     return samples;
+  }
+
+  /**
+   * Cleanup resources
+   */
+  cleanup(): void {
+    if (this.encoder) {
+      this.encoder.delete();
+      this.encoder = null;
+    }
+    if (this.decoder) {
+      this.decoder.delete();
+      this.decoder = null;
+    }
   }
 }
 
