@@ -1,6 +1,7 @@
 import WebSocket, { WebSocketServer } from "ws";
 import type { ChannelContext } from "openclaw/plugin-sdk";
 import { createAudioStream, type AudioConfig } from "./audio-stream.js";
+import { createDoubaoService, type DoubaoConfig } from "./doubao-service.js";
 
 interface XiaoZhiMessage {
   type: string;
@@ -14,6 +15,7 @@ interface DeviceSession {
   audioStream: any;
   audioBuffer: Buffer[];
   isListening: boolean;
+  doubaoService: any;
 }
 
 let wss: WebSocketServer | null = null;
@@ -22,6 +24,14 @@ const AUDIO_CONFIG: AudioConfig = {
   sampleRate: 16000,
   frameDuration: 60,
   channels: 1,
+};
+
+// Doubao configuration
+const DOUBAO_CONFIG: DoubaoConfig = {
+  appId: process.env.DOUBAO_APP_ID || '',
+  accessToken: process.env.DOUBAO_ACCESS_TOKEN || '',
+  cluster: 'volcano_tts',
+  apiHost: 'openspeech.bytedance.com',
 };
 
 export function startXiaozhiWebSocketServer(
@@ -35,11 +45,14 @@ export function startXiaozhiWebSocketServer(
     console.log(`🎤 XiaoZhi device connected: ${deviceId}`);
     
     const audioStream = createAudioStream(AUDIO_CONFIG);
+    const doubaoService = createDoubaoService(DOUBAO_CONFIG);
+    
     clients.set(deviceId, {
       ws,
       audioStream,
       audioBuffer: [],
       isListening: false,
+      doubaoService,
     });
 
     ws.on("message", async (data: Buffer) => {
@@ -54,7 +67,7 @@ export function startXiaozhiWebSocketServer(
           // Decode and buffer for STT processing
           try {
             const pcm = session.audioStream.decodeOpus(data);
-            // Buffer PCM data for later STT processing
+            // Buffer PCM data for STT processing
           } catch (err) {
             console.error("Opus decode error:", err);
           }
@@ -80,6 +93,7 @@ export function startXiaozhiWebSocketServer(
   });
 
   console.log(`🚀 XiaoZhi WebSocket server listening on port ${port}`);
+  console.log(`🤖 Doubao STT/TTS service initialized`);
 }
 
 async function handleXiaozhiMessage(
@@ -103,8 +117,29 @@ async function handleXiaozhiMessage(
       session.isListening = false;
       console.log(`⏹️ Stop listening from ${deviceId}`);
       
-      // Get transcribed text (from firmware or process locally)
-      const userText = message.text || "Hello PocketAI!";
+      let userText = message.text;
+      
+      // If no text provided, use STT to transcribe audio
+      if (!userText && session.audioBuffer.length > 0) {
+        try {
+          console.log(`🎙️ Processing STT for ${deviceId}...`);
+          // Concatenate all audio frames
+          const fullAudio = Buffer.concat(session.audioBuffer);
+          // Convert Opus to WAV for Doubao STT
+          const wavData = session.audioStream.pcmToWav(
+            session.audioBuffer.flatMap(buf => session.audioStream.decodeOpus(buf)),
+            AUDIO_CONFIG.sampleRate
+          );
+          // Call Doubao STT API
+          userText = await session.doubaoService.speechToText(wavData, AUDIO_CONFIG.sampleRate);
+          console.log(`📝 STT result: "${userText}"`);
+        } catch (error) {
+          console.error("STT error:", error);
+          userText = "Sorry, I couldn't understand that.";
+        }
+      }
+      
+      userText = userText || "Hello PocketAI!";
       
       // Send to OpenClaw for processing
       const response = await ctx.agent.processMessage({
@@ -115,19 +150,13 @@ async function handleXiaozhiMessage(
 
       // Send TTS response back
       if (response && response.text) {
-        await sendTTSResponse(deviceId, response.text);
+        await sendTTSResponse(deviceId, response.text, session);
       }
     }
   }
 }
 
-async function sendTTSResponse(deviceId: string, text: string) {
-  const session = clients.get(deviceId);
-  if (!session) {
-    console.log(`❌ Device ${deviceId} not connected`);
-    return;
-  }
-
+async function sendTTSResponse(deviceId: string, text: string, session: DeviceSession) {
   console.log(`🔊 Sending TTS response: "${text}"`);
 
   // Send TTS start
@@ -137,24 +166,33 @@ async function sendTTSResponse(deviceId: string, text: string) {
     text: text
   }));
 
-  // TODO: Integrate with TTS service (OpenAI/ElevenLabs)
-  // For now, simulate audio streaming
   try {
-    // In production:
-    // 1. Call TTS API to get audio
-    // 2. Encode to Opus
-    // 3. Stream binary frames to device
+    // Call Doubao TTS API
+    console.log(`🤖 Calling Doubao TTS...`);
+    const ttsAudio = await session.doubaoService.textToSpeech(text);
     
-    // Simulate TTS delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Convert WAV to PCM, then encode to Opus
+    const pcmData = session.audioStream.wavToPcm(ttsAudio);
+    
+    // Stream Opus frames to device
+    const frameSize = Math.floor((AUDIO_CONFIG.sampleRate * AUDIO_CONFIG.frameDuration) / 1000);
+    for (let i = 0; i < pcmData.length; i += frameSize) {
+      const chunk = pcmData.slice(i, i + frameSize);
+      const opusFrame = session.audioStream.encodeOpus(chunk);
+      if (opusFrame.length > 0) {
+        session.ws.send(opusFrame);
+        // Small delay to simulate real-time streaming
+        await new Promise(resolve => setTimeout(resolve, AUDIO_CONFIG.frameDuration));
+      }
+    }
+    
+    console.log(`✅ TTS response complete`);
     
     // Send TTS stop
     session.ws.send(JSON.stringify({
       type: "tts",
       state: "stop"
     }));
-    
-    console.log(`✅ TTS response complete`);
   } catch (error) {
     console.error("TTS error:", error);
     session.ws.send(JSON.stringify({

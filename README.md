@@ -9,6 +9,7 @@ Connect your XiaoZhi AI Device to OpenClaw agents for real-time voice interactio
 - 🎤 **Real-time Voice Communication** - Talk to your AI assistant through XiaoZhi hardware
 - 🔌 **WebSocket Bridge** - Simple WebSocket server for XiaoZhi firmware connection
 - 🤖 **OpenClaw Integration** - Seamless integration with OpenClaw agent ecosystem
+- 🎙️ **Volcengine Doubao STT/TTS** - High-quality speech-to-text and text-to-speech
 - 🛠️ **Extensible** - Easy to add custom STT/TTS providers
 
 ## Quick Start
@@ -18,6 +19,7 @@ Connect your XiaoZhi AI Device to OpenClaw agents for real-time voice interactio
 - Node.js v20+
 - XiaoZhi ESP32 device with firmware flashed
 - OpenClaw installed
+- Volcengine Doubao API credentials (for STT/TTS)
 
 ### Installation
 
@@ -35,7 +37,16 @@ npm run build
 
 ### Configuration
 
-Add to your OpenClaw configuration:
+#### 1. Set up Volcengine Doubao Credentials
+
+Get your API credentials from [Volcengine Console](https://console.volcengine.com/):
+
+```bash
+export DOUBAO_APP_ID="your_app_id"
+export DOUBAO_ACCESS_TOKEN="your_access_token"
+```
+
+#### 2. Add to OpenClaw Configuration
 
 ```json
 {
@@ -68,6 +79,8 @@ XiaoZhi ESP32 ←→ WebSocket Server ←→ OpenClaw Channel ←→ AI Agent
   Microphone    Port 8080          xiaozhiclaw      PocketAI
      ↓                ↓                    ↓              ↓
   Speaker      Opus Audio         Message Router   Response
+                     ↓
+              Doubao STT/TTS
 ```
 
 ## Protocol
@@ -136,11 +149,13 @@ npm run build
 - [x] WebSocket server implementation
 - [x] Basic handshake protocol
 - [x] Text message support
-- [ ] Opus audio encoding/decoding
-- [ ] STT integration (Whisper/OpenAI)
-- [ ] TTS integration (OpenAI/ElevenLabs)
+- [x] Opus audio encoding/decoding
+- [x] Volcengine Doubao STT integration
+- [x] Volcengine Doubao TTS integration
+- [x] Real-time voice conversation
 - [ ] Hardware control (volume, brightness)
 - [ ] Multi-device support
+- [ ] Offline STT/TTS support
 
 ## License
 
@@ -150,4 +165,5 @@ MIT
 
 - OpenClaw Team
 - XiaoZhi AI ESP32 Project
+- Volcengine Doubao
 - PocketAI 🧤
