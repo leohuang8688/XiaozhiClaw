@@ -9,6 +9,7 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
+    "dotenv": "^16.3.1",
     "ws": "^8.14.2",
     "opusscript": "^0.1.1"
   },

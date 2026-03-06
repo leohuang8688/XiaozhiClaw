@@ -3,18 +3,23 @@
 
 import https from 'https';
 
+// Load environment variables from .env file
+import 'dotenv/config';
+
 export interface DoubaoConfig {
   appId: string;
   accessToken: string;
   cluster: string;
   apiHost: string;
+  voiceType?: string;
 }
 
 export const DEFAULT_DOUBAO_CONFIG: DoubaoConfig = {
   appId: process.env.DOUBAO_APP_ID || '',
   accessToken: process.env.DOUBAO_ACCESS_TOKEN || '',
-  cluster: 'volcano_tts',
+  cluster: process.env.DOUBAO_CLUSTER || 'volcano_tts',
   apiHost: 'openspeech.bytedance.com',
+  voiceType: process.env.DOUBAO_VOICE_TYPE || 'zh_female_tianmei_moon_bigtts',
 };
 
 export class DoubaoService {

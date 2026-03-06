@@ -37,14 +37,29 @@ npm run build
 
 ### Configuration
 
-#### 1. Set up Volcengine Doubao Credentials
+#### 1. Set up Environment Variables
 
-Get your API credentials from [Volcengine Console](https://console.volcengine.com/):
+Copy `.env.example` to `.env` and fill in your credentials:
 
 ```bash
-export DOUBAO_APP_ID="your_app_id"
-export DOUBAO_ACCESS_TOKEN="your_access_token"
+cp .env.example .env
 ```
+
+Edit `.env` file:
+
+```bash
+# Volcengine Doubao API Credentials
+DOUBAO_APP_ID=your_app_id_here
+DOUBAO_ACCESS_TOKEN=your_access_token_here
+
+# WebSocket Server Configuration
+XIAOZHI_PORT=8080
+```
+
+**⚠️ Security Notice:**
+- NEVER commit your `.env` file to Git
+- The `.env` file is already in `.gitignore`
+- Use `.env.example` as a template for sharing
 
 #### 2. Add to OpenClaw Configuration
 

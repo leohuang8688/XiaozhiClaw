@@ -1,3 +1,6 @@
+// Load environment variables from .env file
+import 'dotenv/config';
+
 import type { ChannelPlugin, OpenClawPluginApi } from "openclaw/plugin-sdk";
 import { buildChannelConfigSchema, emptyPluginConfigSchema } from "openclaw/plugin-sdk";
 import { xiaozhiPlugin } from "./src/channel.js";
