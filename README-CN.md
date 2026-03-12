@@ -1,8 +1,12 @@
 # xiaozhiclaw 🧤
 
-** 小智 AI 设备（ESP32 硬件）的 OpenClaw 通道 **
+**小智 AI 设备（ESP32 硬件）的 OpenClaw 通道**
 
 将您的小智 AI 设备连接到 OpenClaw 智能体，实现实时语音交互。给您的 AI 助手一个物理身体！
+
+**[🇺🇸 English](README.md)** | **[🇨🇳 中文文档](README-CN.md)**
+
+---
 
 ## 功能特性
 
